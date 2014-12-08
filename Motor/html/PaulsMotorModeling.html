@@ -1,0 +1,171 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>PaulsMotorModeling</title><meta name="generator" content="MATLAB 7.9"><meta name="date" content="2014-12-07"><meta name="m-file" content="PaulsMotorModeling"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Set-up and motor variables</a></li><li><a href="#3">Moments of Intertia and Damping due to load (average of all parts)</a></li><li><a href="#4">Mathematical modeling of motor transfer function</a></li></ul></div><pre class="codeinput"><span class="comment">%Control needs analysis of 12V Pittman 8224 motor with G35A wide-faced gear box</span>
+</pre><h2>Set-up and motor variables<a name="2"></a></h2><pre class="codeinput">clc
+clear <span class="string">all</span>
+Ke = 0.01;<span class="comment">%[V/rad/s]</span>
+Kt = Ke;<span class="comment">%Due to SI units</span>
+Km = Kt;<span class="comment">%Therefore we have only one constant, a motor constant Km</span>
+Bm = 1.34e-6;<span class="comment">% Viscous damping factor,[Nm*s/rad]</span>
+Jm = 1.62e-6;<span class="comment">%Inertia of rotor, [kg*m^2]</span>
+La = 0.58e-3;<span class="comment">%Armature Inductance, [H]</span>
+Ra = 1.17;<span class="comment">%Armature Resistance, [Ohm]</span>
+n = 60.5;<span class="comment">% Ratio of G35A gear box =&gt; wm/wl</span>
+Eff = 0.66;<span class="comment">% Efficeincy of gear-box, losses due to gear box gear friction</span>
+neff = n*Eff;<span class="comment">%Effective gear ratio of gear-box due to friction losses</span>
+Inl = 0.37;<span class="comment">%No load current draw[A]</span>
+Tloss = Inl*Kt;<span class="comment">% Torque loss due to the motor shaft [Nm]</span>
+</pre><h2>Moments of Intertia and Damping due to load (average of all parts)<a name="3"></a></h2><pre class="codeinput">J_load = 0.0059;<span class="comment">%[kg*m^2]</span>
+B_load = 0.0166;<span class="comment">%[N*m*s/rad]</span>
+</pre><h2>Mathematical modeling of motor transfer function<a name="4"></a></h2><p>Load is reffered to motor via effective gear ratio Model obtained from <a href="A">Journey from Robot to Digital Human</a>, pg. 298 By: Edward Y.L. Gu, Springer, 2013</p><pre class="codeinput">Jeff = Jm + (J_load/(neff)^2);<span class="comment">%Effective inertia experienced by motor</span>
+Beff = Bm + (B_load/(neff)^2);<span class="comment">%Effective damping experienced by motor</span>
+num = [(-La*Tloss) (Ra+Km)];
+den = [(Jeff*La) ((Jeff*Ra) + (Beff*La) - (Km*Tloss)) ((Beff*Ra) + (Km^2) - (Ra*Tloss*Km))];
+Sys = tf(num, den)<span class="comment">%System TF</span>
+<span class="comment">% Transfer function:</span>
+<span class="comment">%   -2.146e-006 s + 1.18</span>
+<span class="comment">% ------------------------------------------</span>
+<span class="comment">% 3.086e-009 s^2 - 3.077e-005 s + 7.046e-005</span>
+w_n = sqrt(((Beff*Ra) + (Km^2) - (Ra*Km*Tloss))/(Jeff*La))
+<span class="comment">% resonant frequnecy</span>
+<span class="comment">% w_n =</span>
+<span class="comment">%</span>
+<span class="comment">%   151.1057</span>
+z = (0.5*((Jeff*Ra)+ (Beff*La) - (Km*Tloss))/sqrt(((Beff*Ra)+(Km^2)-(Ra*Km*Tloss))/(Jeff*La)))
+<span class="comment">%damping factor</span>
+<span class="comment">% z =</span>
+<span class="comment">%</span>
+<span class="comment">%  -1.0181e-007</span>
+
+<span class="comment">%Graph of system step response</span>
+figure(1);
+step(Sys)
+</pre><pre class="codeoutput"> 
+Transfer function:
+           -2.146e-006 s + 1.18
+------------------------------------------
+3.086e-009 s^2 - 3.077e-005 s + 7.046e-005
+ 
+
+w_n =
+
+  151.1057
+
+
+z =
+
+ -1.0181e-007
+
+</pre><img vspace="5" hspace="5" src="PaulsMotorModeling_01.jpg" alt=""> <p class="footer"><br>
+      Published with MATLAB&reg; 7.9<br></p></div><!--
+##### SOURCE BEGIN #####
+%Control needs analysis of 12V Pittman 8224 motor with G35A wide-faced gear box
+%% Set-up and motor variables
+clc
+clear all
+Ke = 0.01;%[V/rad/s]
+Kt = Ke;%Due to SI units
+Km = Kt;%Therefore we have only one constant, a motor constant Km
+Bm = 1.34e-6;% Viscous damping factor,[Nm*s/rad]
+Jm = 1.62e-6;%Inertia of rotor, [kg*m^2]
+La = 0.58e-3;%Armature Inductance, [H]
+Ra = 1.17;%Armature Resistance, [Ohm]
+n = 60.5;% Ratio of G35A gear box => wm/wl
+Eff = 0.66;% Efficeincy of gear-box, losses due to gear box gear friction
+neff = n*Eff;%Effective gear ratio of gear-box due to friction losses
+Inl = 0.37;%No load current draw[A]
+Tloss = Inl*Kt;% Torque loss due to the motor shaft [Nm]
+%% Moments of Intertia and Damping due to load (average of all parts)
+J_load = 0.0059;%[kg*m^2]
+B_load = 0.0166;%[N*m*s/rad]
+%% Mathematical modeling of motor transfer function
+% Load is reffered to motor via effective gear ratio
+% Model obtained from <A Journey from Robot to Digital Human>, pg. 298
+% By: Edward Y.L. Gu, Springer, 2013
+Jeff = Jm + (J_load/(neff)^2);%Effective inertia experienced by motor
+Beff = Bm + (B_load/(neff)^2);%Effective damping experienced by motor
+num = [(-La*Tloss) (Ra+Km)];
+den = [(Jeff*La) ((Jeff*Ra) + (Beff*La) - (Km*Tloss)) ((Beff*Ra) + (Km^2) - (Ra*Tloss*Km))];
+Sys = tf(num, den)%System TF
+% Transfer function:
+%   -2.146e-006 s + 1.18
+% REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+% 3.086e-009 s^2 - 3.077e-005 s + 7.046e-005
+w_n = sqrt(((Beff*Ra) + (Km^2) - (Ra*Km*Tloss))/(Jeff*La))
+% resonant frequnecy
+% w_n =
+% 
+%   151.1057
+z = (0.5*((Jeff*Ra)+ (Beff*La) - (Km*Tloss))/sqrt(((Beff*Ra)+(Km^2)-(Ra*Km*Tloss))/(Jeff*La))) 
+%damping factor
+% z =
+% 
+%  -1.0181e-007
+
+%Graph of system step response
+figure(1);
+step(Sys)
+##### SOURCE END #####
+--></body></html>
